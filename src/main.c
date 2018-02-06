@@ -13,7 +13,7 @@
 #define strnicmp _strnicmp
 
 #define KEY_SIZE 8
-#define DEFAULT_KEY	"abcdefgh"
+#define DEFAULT_KEY	"x9Ke0BY7"
 #define DEFAULT_EXTENSION ".ctx"
 
 // Vars
@@ -193,7 +193,10 @@ int main( int argc, char *argv[] )
 	}
 
 	if ( g_szExtension[0] == '\0' )
+	{
 		printf( "no extension, using default (%s)\n", DEFAULT_EXTENSION );
+		strncpy( g_szExtension, DEFAULT_EXTENSION, sizeof( g_szExtension ) );
+	}
 
 	for ( ; i < argc; i++ )
 	{
