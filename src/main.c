@@ -127,7 +127,7 @@ int main( int argc, char *argv[] )
 
 	if ( argc < 2 )
 	{
-		Warning( "usage: icey [-encrypt] [-decrypt] [-key abcdefgh] [-extension .ctx] file file2 ...\n\n" );
+		Warning( "usage: icey [-encrypt] [-decrypt] [-quiet] [-key abcdefgh] [-extension .ctx] file file2 ...\n\n" );
 		Warning( "-encrypt | -e : encrypt files (default)\n" );
 		Warning( "-decrypt | -d : decrypt files\n" );
 		Warning( "-key | -k : key, must be 8 chars\n" );
