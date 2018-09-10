@@ -137,7 +137,7 @@ bool ProcessFile( const char *pszFileName )
 	ice_key_set( pKey, (unsigned char*)g_szKey );
 
 	int blockSize = ice_key_block_size( pKey );
-	int bytesLeft = fileSize;
+	size_t bytesLeft = fileSize;
 
 	unsigned char *p1 = pInBuf;
 	unsigned char *p2 = pOutBuf;
