@@ -122,7 +122,7 @@ bool ProcessFile( const char *pszFileName )
 		return false;
 	}
 
-	size_t fileSize = 0;
+	long fileSize = 0;
 	fseek( pFile, 0, SEEK_END );
 	fileSize = ftell( pFile );
 	rewind( pFile );
@@ -137,7 +137,7 @@ bool ProcessFile( const char *pszFileName )
 	ice_key_set( pKey, (unsigned char*)g_szKey );
 
 	int blockSize = ice_key_block_size( pKey );
-	size_t bytesLeft = fileSize;
+	int bytesLeft = fileSize;
 
 	unsigned char *p1 = pInBuf;
 	unsigned char *p2 = pOutBuf;
