@@ -3,14 +3,34 @@
 #include <string.h>
 #include <stdbool.h>
 #include <malloc.h>
-#include <direct.h>
+#include <ctype.h>
 
-#include "ice.h"
+#include "icey/ice.h"
 
+#ifndef _WIN32
+#define min(X, Y)  ((X) < (Y) ? (X) : (Y))
+#endif // _WIN32
+
+#ifdef _WIN32
 #include "winlite.h"
+#else
+#include <dirent.h>
+#define MAX_PATH 260
+#define _MAX_EXT 256
+#endif // _WIN32
 
+#ifdef _WIN32
 #define stricmp _stricmp
 #define strnicmp _strnicmp
+#endif // _WIN32
+
+#ifdef _WIN32
+#include <direct.h>
+#define GetCurrentDir _getcwd
+#else
+#include <unistd.h>
+#define GetCurrentDir getcwd
+#endif // _WIN32
 
 #define KEY_SIZE 8
 #define DEFAULT_KEY	"x9Ke0BY7"
@@ -19,14 +39,17 @@
 // Vars
 static char g_szKey[KEY_SIZE + 1];
 static char g_szExtension[_MAX_EXT];
+#ifndef _WIN32
+const char *g_szInputExtension = NULL;
+#endif // _WIN32
 bool g_bEncrypt;
 bool g_bDecrypt;
 bool g_bQuiet;
 
 // Utils
-#define Msg( format, ... ) if ( !g_bQuiet ) fprintf( stdout, format, __VA_ARGS__ )
-#define Warning( format, ... ) fprintf( stderr, format, __VA_ARGS__ )
-#define Error( format, ... ) fprintf( stderr, format, __VA_ARGS__ ); exit( EXIT_FAILURE )
+#define Msg( format, ... ) if ( !g_bQuiet ) fprintf( stdout, format, ##__VA_ARGS__ )
+#define Warning( format, ... ) fprintf( stderr, format, ##__VA_ARGS__ )
+#define Error( format, ... ) fprintf( stderr, format, ##__VA_ARGS__ ); exit( EXIT_FAILURE )
 
 bool PATHSEPARATOR( char c )
 {
@@ -59,6 +82,37 @@ void UTIL_StripExtension( const char *in, char *out, size_t outSize )
 	}
 }
 
+#ifndef _WIN32
+int stricmp(char const *a, char const *b)
+{
+    for (;; a++, b++) {
+        int d = tolower((unsigned char)*a) - tolower((unsigned char)*b);
+        if (d != 0 || !*a)
+            return d;
+    }
+}
+
+int extension_filter( const struct dirent *dir )
+{
+	if ( !dir )
+		return 0;
+
+	if ( dir->d_type == DT_REG ) // Only deal with regular files
+	{
+		const char *ext = strrchr( dir->d_name, '.' );
+		if ( ( !ext ) || ( ext == dir->d_name ) )
+			return 0;
+		else
+		{
+			if ( stricmp( ext, g_szInputExtension ) == 0 )
+				return 1;
+		}
+	}
+
+	return 0;
+}
+#endif // _WIN32
+
 bool ProcessFile( const char *pszFileName )
 {
 	FILE *pFile = fopen( pszFileName, "rb" );
@@ -73,8 +127,8 @@ bool ProcessFile( const char *pszFileName )
 	fileSize = ftell( pFile );
 	rewind( pFile );
 
-	unsigned char *pInBuf = (unsigned char*)_alloca( fileSize );
-	unsigned char *pOutBuf = (unsigned char *)_alloca( fileSize );
+	unsigned char *pInBuf = (unsigned char*)alloca( fileSize );
+	unsigned char *pOutBuf = (unsigned char *)alloca( fileSize );
 
 	fread( pInBuf, fileSize, 1, pFile );
 	fclose( pFile );
@@ -136,7 +190,7 @@ int main( int argc, char *argv[] )
 		Warning( "eg.\n" );
 		Warning( "icey -encrypt -key sEvVdNEq -extension .ctx file.txt\n" );
 		Warning( "icey -x .ctx -k sEvVdNEq *.txt\n\n" );
-		return;
+		return 0;
 	}
 
 	g_szKey[0] = '\0';
@@ -216,17 +270,21 @@ int main( int argc, char *argv[] )
 		if ( strstr( pszFileName, "*." ) )
 		{
 			char cwd[MAX_PATH];
-			_getcwd( cwd, sizeof( cwd ) );
+			GetCurrentDir( cwd, sizeof( cwd ) );
 
 			char filename[MAX_PATH];
 			char extension[_MAX_EXT];
+#ifdef _WIN32
 			_splitpath( pszFileName, NULL, NULL, filename, extension );
+#endif
 
 			if ( extension[0] != '\0' )
 				pszExtension = extension;
 
 			char szSearch[MAX_PATH];
 			snprintf( szSearch, sizeof( szSearch ), "%s\\*%s", cwd, pszExtension );
+
+#ifdef _WIN32
 			WIN32_FIND_DATAA file;
 			HANDLE hFind = FindFirstFileA( szSearch, &file );
 
@@ -234,7 +292,26 @@ int main( int argc, char *argv[] )
 			{
 				Error( "error: windows threw %d, bailing\n", GetLastError() );
 			}
+#else
+			g_szInputExtension = strrchr( pszFileName, '.' );
+			struct dirent **nameList;
+			int n = scandir( ".", &nameList, extension_filter, alphasort );
+			if ( n < 0 )
+			{
+				Error( "error: scandir failed, bailing\n" );
+			}
+			else
+			{
+				while ( n-- )
+				{
+					ProcessFile( nameList[ n ]->d_name );
+				}
 
+				free( nameList );
+			}
+#endif
+
+#ifdef _WIN32
 			bool bFound = true;
 			while ( bFound )
 			{
@@ -243,6 +320,7 @@ int main( int argc, char *argv[] )
 			}
 
 			FindClose( hFind );
+#endif
 		}
 		else
 		{
