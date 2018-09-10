@@ -290,7 +290,23 @@ int main( int argc, char *argv[] )
 
 			if ( hFind == INVALID_HANDLE_VALUE )
 			{
-				Error( "error: windows threw %d, bailing\n", GetLastError() );
+				// print windows error
+				LPVOID lpMsgBuf;
+				DWORD dw = GetLastError();
+
+				FormatMessageA(
+					FORMAT_MESSAGE_ALLOCATE_BUFFER |
+					FORMAT_MESSAGE_FROM_SYSTEM |
+					FORMAT_MESSAGE_IGNORE_INSERTS,
+					NULL,
+					dw,
+					MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ),
+					(LPSTR)&lpMsgBuf,
+					0, NULL );
+
+				Warning( "%s", (LPSTR)lpMsgBuf );
+				LocalFree( lpMsgBuf );
+				Error( "error: windows threw %d, bailing.\n", dw );
 			}
 #else
 			g_szInputExtension = strrchr( pszFileName, '.' );
