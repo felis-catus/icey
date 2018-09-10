@@ -3,7 +3,7 @@ yet another fking ICE encryption tool
 
 Why?
 -----
-Originally made as a personal quick and dirty replacement for [Source SDK VICE](https://developer.valvesoftware.com/wiki/VICE), this tool is pretty much identical to that. The stock VICE requires Steam and Source engine libraries to function, while this tool only uses system libraries and can be run everywhere. (Windows only for now, I did say "quick and dirty" right?)
+Originally made as a personal quick and dirty replacement for [Source SDK VICE](https://developer.valvesoftware.com/wiki/VICE), this tool is pretty much identical to that. Stock VICE requires Steam and Source engine libraries to function, while this tool only uses system libraries and can be run everywhere.
 
 Usage
 -----
