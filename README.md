@@ -8,12 +8,13 @@ Originally made as a personal quick and dirty replacement for [Source SDK VICE](
 Usage
 -----
 ```
-icey [-encrypt] [-decrypt] [-key abcdefgh] [-extension .ctx] file file2 ...
+icey [-encrypt] [-decrypt] [-quiet] [-key abcdefgh] [-extension .ctx] file file2 ...
 
 -encrypt | -e : encrypt files (default)
 -decrypt | -d : decrypt files
 -key | -k : key, must be 8 chars
 -extension | -x : file extension for output
+-quiet | -q : don't print anything (excl. errors)
 
 eg.
 icey -encrypt -key sEvVdNEq -extension .ctx file.txt
