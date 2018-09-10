@@ -7,7 +7,9 @@
 
 #include "icey/ice.h"
 
+#ifndef _WIN32
 #define min(X, Y)  ((X) < (Y) ? (X) : (Y))
+#endif // _WIN32
 
 #ifdef _WIN32
 #include "winlite.h"
