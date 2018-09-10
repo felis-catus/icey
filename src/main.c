@@ -150,11 +150,13 @@ int main( int argc, char *argv[] )
 		if ( stricmp( argv[i], "-e" ) == 0 || stricmp( argv[i], "-encrypt" ) == 0 )
 		{
 			g_bEncrypt = true;
+			g_bDecrypt = false;
 			i++;
 		}
 		else if ( stricmp( argv[i], "-d" ) == 0 || stricmp( argv[i], "-decrypt" ) == 0 )
 		{
 			g_bDecrypt = true;
+			g_bEncrypt = false;
 			i++;
 		}
 		else if ( stricmp( argv[i], "-k" ) == 0 || stricmp( argv[i], "-key" ) == 0 )
