@@ -4,7 +4,7 @@
  * Written by Matthew Kwan - July 1996
  */
 
-#include "ice.h"
+#include "icey/ice.h"
 #include <stdio.h>
 #include <stdlib.h>
 
