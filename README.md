@@ -20,3 +20,7 @@ eg.
 icey -encrypt -key sEvVdNEq -extension .ctx file.txt
 icey -x .ctx -k sEvVdNEq *.txt
 ```
+
+License
+-----
+The ICE algorithm is public domain, and so is this software.
