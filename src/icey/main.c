@@ -5,7 +5,7 @@
 #include <malloc.h>
 #include <direct.h>
 
-#include "ice.h"
+#include "icey/ice.h"
 
 #include "winlite.h"
 
