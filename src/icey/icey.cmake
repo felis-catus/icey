@@ -14,6 +14,11 @@ set_target_properties("icey" PROPERTIES
   ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/x64"
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/x64"
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/x64"
+  PREFIX ""
+)
+
+target_link_directories("icey" PRIVATE
+  ${CMAKE_BINARY_DIR}/x64
 )
 endif()
 
@@ -23,6 +28,11 @@ set_target_properties("icey" PROPERTIES
   ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/x86"
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/x86"
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/x86"
+  PREFIX ""
+)
+
+target_link_directories("icey" PRIVATE
+  ${CMAKE_BINARY_DIR}/x86
 )
 endif()
 
@@ -35,14 +45,14 @@ target_compile_definitions("icey" PRIVATE
   _SCL_SECURE_NO_WARNINGS
 )
 
-target_link_directories("icey" PRIVATE
-  ${CMAKE_BINARY_DIR}/x64
-)
-
+if(WIN32)
 target_link_libraries("icey"
   libicey
   libicey.lib
 )
+else()
+target_link_libraries("icey" libicey)
+endif()
 
 target_compile_options("icey" PRIVATE
   $<$<AND:$<CONFIG:x64_debug>,$<COMPILE_LANGUAGE:C>>:-m64>

@@ -35,5 +35,10 @@ set(CMAKE_C_FLAGS_x86_RELEASE "")
 set(CMAKE_CXX_FLAGS_x86_RELEASE "")
 
 project("icey")
+
 include(src/libicey/libicey.cmake)
 include(src/icey/icey.cmake)
+
+set(CMAKE_SHARED_LIBRARY_PREFIX "")
+set(CMAKE_STATIC_LIBRARY_PREFIX "")
+
