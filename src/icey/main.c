@@ -3,7 +3,6 @@
 #include <string.h>
 #include <stdbool.h>
 #include <malloc.h>
-#include <ctype.h>
 
 #include "ice.h"
 
@@ -66,7 +65,7 @@ void UTIL_StripExtension( const char *in, char *out, size_t outSize )
 
 	if ( end > 0 && !PATHSEPARATOR( in[end] ) && end < outSize )
 	{
-		size_t nChars = min( end, outSize - 1 );
+		const size_t nChars = min( end, outSize - 1 );
 		if ( out != in )
 		{
 			memcpy( out, in, nChars );
@@ -83,13 +82,14 @@ void UTIL_StripExtension( const char *in, char *out, size_t outSize )
 }
 
 #ifndef _WIN32
-int stricmp(char const *a, char const *b)
+int stricmp( char const *a, char const *b )
 {
-    for (;; a++, b++) {
-        int d = tolower((unsigned char)*a) - tolower((unsigned char)*b);
-        if (d != 0 || !*a)
-            return d;
-    }
+	for ( ;; a++, b++ )
+	{
+		int d = tolower( (unsigned char)*a ) - tolower( (unsigned char)*b );
+		if ( d != 0 || !*a )
+			return d;
+	}
 }
 
 int extension_filter( const struct dirent *dir )
@@ -122,21 +122,23 @@ bool ProcessFile( const char *pszFileName )
 		return false;
 	}
 
-	long fileSize = 0;
 	fseek( pFile, 0, SEEK_END );
-	fileSize = ftell( pFile );
+	
+	const long fileSize = ftell( pFile );
+	
 	rewind( pFile );
 
-	unsigned char *pInBuf = (unsigned char*)alloca( fileSize );
+	unsigned char *pInBuf = (unsigned char *)alloca( fileSize );
 	unsigned char *pOutBuf = (unsigned char *)alloca( fileSize );
 
 	fread( pInBuf, fileSize, 1, pFile );
 	fclose( pFile );
 
 	ICE_KEY *pKey = ice_key_create( 0 );
-	ice_key_set( pKey, (unsigned char*)g_szKey );
+	ice_key_set( pKey, (unsigned char *)g_szKey );
 
-	int blockSize = ice_key_block_size( pKey );
+	const int blockSize = ice_key_block_size( pKey );
+
 	int bytesLeft = fileSize;
 
 	unsigned char *p1 = pInBuf;
@@ -156,8 +158,8 @@ bool ProcessFile( const char *pszFileName )
 	memcpy( p2, p1, bytesLeft );
 
 	char szOutName[MAX_PATH];
-	UTIL_StripExtension( pszFileName, szOutName, sizeof( szOutName ) );
-	strncat( szOutName, g_szExtension, sizeof( szOutName ) );
+	UTIL_StripExtension( pszFileName, szOutName, MAX_PATH );
+	strncat( szOutName, g_szExtension, MAX_PATH - strlen( szOutName ) );
 
 	pFile = fopen( szOutName, "wb" );
 	if ( !pFile )
@@ -199,7 +201,7 @@ int main( int argc, char *argv[] )
 	g_bEncrypt = true; // assume encrypt by default
 
 	int i = 1;
-	while( i < argc )
+	while ( i < argc )
 	{
 		if ( stricmp( argv[i], "-e" ) == 0 || stricmp( argv[i], "-encrypt" ) == 0 )
 		{
@@ -267,17 +269,20 @@ int main( int argc, char *argv[] )
 	{
 		const char *pszFileName = argv[i];
 		const char *pszExtension = DEFAULT_EXTENSION;
+		
 		if ( strstr( pszFileName, "*." ) )
 		{
 			char cwd[MAX_PATH];
-			GetCurrentDir( cwd, sizeof( cwd ) );
+			if ( !GetCurrentDir( cwd, sizeof( cwd ) ) )
+			{
+				Error( "error: couldn't get current directory.\n" );
+			}
 
 			char filename[MAX_PATH];
 			char extension[_MAX_EXT];
 #ifdef _WIN32
 			_splitpath( pszFileName, NULL, NULL, filename, extension );
 #endif
-
 			if ( extension[0] != '\0' )
 				pszExtension = extension;
 
@@ -292,21 +297,21 @@ int main( int argc, char *argv[] )
 			{
 				// print windows error
 				LPVOID lpMsgBuf;
-				DWORD dw = GetLastError();
+				const DWORD dwError = GetLastError();
 
 				FormatMessageA(
 					FORMAT_MESSAGE_ALLOCATE_BUFFER |
 					FORMAT_MESSAGE_FROM_SYSTEM |
 					FORMAT_MESSAGE_IGNORE_INSERTS,
 					NULL,
-					dw,
+					dwError,
 					MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ),
 					(LPSTR)&lpMsgBuf,
 					0, NULL );
 
 				Warning( "%s", (LPSTR)lpMsgBuf );
 				LocalFree( lpMsgBuf );
-				Error( "error: windows threw %d, bailing.\n", dw );
+				Error( "error: windows threw %d, bailing.\n", dwError );
 			}
 #else
 			g_szInputExtension = strrchr( pszFileName, '.' );
@@ -320,7 +325,7 @@ int main( int argc, char *argv[] )
 			{
 				while ( n-- )
 				{
-					ProcessFile( nameList[ n ]->d_name );
+					ProcessFile( nameList[n]->d_name );
 				}
 
 				free( nameList );
