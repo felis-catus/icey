@@ -185,3 +185,4 @@ _deps
 *.vcxproj
 *.filters
 *.recipe
+out/
