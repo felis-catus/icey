@@ -1,5 +1,11 @@
 ﻿cmake_minimum_required(VERSION 3.16)
 
+if (NOT CMAKE_BUILD_TYPE)
+   set(CMAKE_BUILD_TYPE x64_debug)
+endif()
+
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+
 set(BUILD_TYPES "x64_debug" "x86_debug" "x64_release" "x86_release")
 get_property(multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if(multi_config)

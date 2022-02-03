@@ -1,42 +1,24 @@
 ﻿add_library("libicey" STATIC
-    "src/shared/icey/ice.h"
+    "src/shared/ice.h"
     "src/libicey/ice.c"
 )
 
-if(CMAKE_BUILD_TYPE STREQUAL x64_debug)
-  set_target_properties("libicey" PROPERTIES
-    OUTPUT_NAME "libicey"
-    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/src/lib/shared/x64/debug"
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/src/lib/shared/x64/debug"
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/src/lib/shared/x64/debug"
-  )
+if(CMAKE_BUILD_TYPE STREQUAL x64_debug OR CMAKE_BUILD_TYPE STREQUAL x64_release)
+set_target_properties("libicey" PROPERTIES
+  OUTPUT_NAME "libicey"
+  ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/x64"
+  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/x64"
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/x64"
+)
 endif()
 
-if(CMAKE_BUILD_TYPE STREQUAL x86_debug)
-  set_target_properties("libicey" PROPERTIES
-    OUTPUT_NAME "libicey"
-    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/src/lib/shared/x86/debug"
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/src/lib/shared/x86/debug"
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/src/lib/shared/x86/debug"
-  )
-endif()
-
-if(CMAKE_BUILD_TYPE STREQUAL x64_release)
-  set_target_properties("libicey" PROPERTIES
-    OUTPUT_NAME "libicey"
-    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/src/lib/shared/x64/release"
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/src/lib/shared/x64/release"
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/src/lib/shared/x64/release"
-  )
-endif()
-
-if(CMAKE_BUILD_TYPE STREQUAL x86_release)
-  set_target_properties("libicey" PROPERTIES
-    OUTPUT_NAME "libicey"
-    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/src/lib/shared/x86/release"
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/src/lib/shared/x86/release"
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/src/lib/shared/x86/release"
-  )
+if(CMAKE_BUILD_TYPE STREQUAL x86_debug OR CMAKE_BUILD_TYPE STREQUAL x86_release)
+set_target_properties("libicey" PROPERTIES
+  OUTPUT_NAME "libicey"
+  ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/x86"
+  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/x86"
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/x86"
+)
 endif()
 
 target_include_directories("libicey" PRIVATE
@@ -74,3 +56,8 @@ target_compile_options("libicey" PRIVATE
   $<$<AND:$<CONFIG:x86_release>,$<COMPILE_LANGUAGE:CXX>>:-m32>
   $<$<AND:$<CONFIG:x86_release>,$<COMPILE_LANGUAGE:CXX>>:-O2>
 )
+
+add_custom_command(TARGET "libicey" POST_BUILD 
+  COMMAND "${CMAKE_COMMAND}" -E copy 
+     "$<TARGET_FILE:libicey>"
+     "${CMAKE_BINARY_DIR}/lib/$<CONFIGURATION>/$<PLATFORM_ID>/$<TARGET_FILE_NAME:libicey>")

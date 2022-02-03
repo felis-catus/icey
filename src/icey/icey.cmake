@@ -1,5 +1,5 @@
 ﻿add_executable("icey"
-	"src/shared/icey/ice.h"
+	"src/shared/ice.h"
 	"src/icey/winlite.h"
 	"src/icey/main.c"
 )
@@ -8,12 +8,23 @@ add_dependencies("icey"
 "libicey"
 )
 
+if(CMAKE_BUILD_TYPE STREQUAL x64_debug OR CMAKE_BUILD_TYPE STREQUAL x64_release)
 set_target_properties("icey" PROPERTIES
   OUTPUT_NAME "icey"
-  ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/src/icey"
-  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/src/icey"
-  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/src/icey"
+  ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/x64"
+  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/x64"
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/x64"
 )
+endif()
+
+if(CMAKE_BUILD_TYPE STREQUAL x86_debug OR CMAKE_BUILD_TYPE STREQUAL x86_release)
+set_target_properties("icey" PROPERTIES
+  OUTPUT_NAME "icey"
+  ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/x86"
+  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/x86"
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/x86"
+)
+endif()
 
 target_include_directories("icey" PRIVATE
   ${CMAKE_BINARY_DIR}/src/shared
@@ -25,10 +36,7 @@ target_compile_definitions("icey" PRIVATE
 )
 
 target_link_directories("icey" PRIVATE
-  $<$<CONFIG:x64_debug>:${CMAKE_BINARY_DIR}/src/lib/shared/x64/debug>
-  $<$<CONFIG:x86_debug>:${CMAKE_BINARY_DIR}/src/lib/shared/x86/debug>
-  $<$<CONFIG:x64_release>:${CMAKE_BINARY_DIR}/src/lib/shared/x64/release>
-  $<$<CONFIG:x86_release>:${CMAKE_BINARY_DIR}/src/lib/shared/x86/release>
+  ${CMAKE_BINARY_DIR}/x64
 )
 
 target_link_libraries("icey"
@@ -57,3 +65,8 @@ target_compile_options("icey" PRIVATE
   $<$<AND:$<CONFIG:x86_release>,$<COMPILE_LANGUAGE:CXX>>:-m32>
   $<$<AND:$<CONFIG:x86_release>,$<COMPILE_LANGUAGE:CXX>>:-O2>
 )
+
+add_custom_command(TARGET "icey" POST_BUILD 
+  COMMAND "${CMAKE_COMMAND}" -E copy 
+     "$<TARGET_FILE:icey>"
+     "${CMAKE_BINARY_DIR}/bin/$<CONFIGURATION>/$<PLATFORM_ID>/$<TARGET_FILE_NAME:icey>")

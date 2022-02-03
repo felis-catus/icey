@@ -5,7 +5,7 @@
 #include <malloc.h>
 #include <ctype.h>
 
-#include "icey/ice.h"
+#include "ice.h"
 
 #ifndef _WIN32
 #define min(X, Y)  ((X) < (Y) ? (X) : (Y))
