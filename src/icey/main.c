@@ -44,6 +44,8 @@ const char *g_szInputExtension = NULL;
 bool g_bEncrypt;
 bool g_bDecrypt;
 bool g_bQuiet;
+bool g_bNoFill;
+char g_chFillChar = '\n'; // fill remainder with newlines by default
 
 // Utils
 #define Msg( format, ... ) if ( !g_bQuiet ) fprintf( stdout, format, ##__VA_ARGS__ )
@@ -128,21 +130,42 @@ bool ProcessFile( const char *pszFileName )
 	
 	rewind( pFile );
 
-	unsigned char *pInBuf = (unsigned char *)alloca( fileSize );
-	unsigned char *pOutBuf = (unsigned char *)alloca( fileSize );
-
-	fread( pInBuf, fileSize, 1, pFile );
-	fclose( pFile );
-
 	ICE_KEY *pKey = ice_key_create( 0 );
 	ice_key_set( pKey, (unsigned char *)g_szKey );
 
 	const int blockSize = ice_key_block_size( pKey );
+	const int remainder = fileSize % blockSize;
 
-	int bytesLeft = fileSize;
+	if ( g_bNoFill && remainder != 0 )
+	{
+		Warning( "warning: %d bytes of unencrypted data leaked due to -nofill.\n", remainder );
+	}
+	
+	const bool bFill = ( !g_bNoFill && remainder != 0 ) ? true : false;
+	const long bufferSize = fileSize + ( bFill ? ( blockSize - remainder ) : 0 );
+
+	unsigned char *pInBuf = (unsigned char *)alloca( bufferSize );
+	unsigned char *pOutBuf = (unsigned char *)alloca( bufferSize );
+
+	memset( pInBuf, 0, bufferSize );
+	memset( pOutBuf, 0, bufferSize );
+
+	fread( pInBuf, bufferSize, 1, pFile );
+	fclose( pFile );
+
+	if ( bFill )
+	{
+		for ( int i = fileSize - 1; i < bufferSize; i++ )
+		{
+			pInBuf[i] = g_chFillChar;
+		}
+	}
+
+	int bytesLeft = bufferSize;
 
 	unsigned char *p1 = pInBuf;
 	unsigned char *p2 = pOutBuf;
+
 	while ( bytesLeft >= blockSize )
 	{
 		if ( g_bEncrypt )
@@ -168,7 +191,7 @@ bool ProcessFile( const char *pszFileName )
 		return false;
 	}
 
-	fwrite( pOutBuf, fileSize, 1, pFile );
+	fwrite( pOutBuf, bufferSize, 1, pFile );
 	fclose( pFile );
 
 	Msg( "handled file %s\n", pszFileName );
@@ -188,8 +211,9 @@ int main( int argc, char *argv[] )
 		Warning( "-decrypt | -d : decrypt files\n" );
 		Warning( "-key | -k : key, must be 8 chars\n" );
 		Warning( "-extension | -x : file extension for output\n" );
-		Warning( "-quiet | -q : don't print anything (excl. errors)\n\n" );
-		Warning( "eg.\n" );
+		Warning( "-quiet | -q : don't print anything (excl. errors)\n" );
+		Warning( "-nofill : don't fill remainder with blank bytes (warning, this will leak unencrypted data)\n" );
+		Warning( "e.g.\n" );
 		Warning( "icey -encrypt -key sEvVdNEq -extension .ctx file.txt\n" );
 		Warning( "icey -x .ctx -k sEvVdNEq *.txt\n\n" );
 		return 0;
@@ -240,6 +264,12 @@ int main( int argc, char *argv[] )
 		else if ( stricmp( argv[i], "-q" ) == 0 || stricmp( argv[i], "-quiet" ) == 0 )
 		{
 			g_bQuiet = true;
+			i++;
+		}
+		else if ( stricmp( argv[i], "-nofill" ) == 0 )
+		{
+			Warning( "-nofill\n" );
+			g_bNoFill = true;
 			i++;
 		}
 		else
