@@ -341,7 +341,7 @@ int main( int argc, char *argv[] )
 
 				Warning( "%s", (LPSTR)lpMsgBuf );
 				LocalFree( lpMsgBuf );
-				Error( "error: windows threw %d, bailing.\n", dwError );
+				Error( "error: windows threw %lu, bailing.\n", dwError );
 			}
 #else
 			g_szInputExtension = strrchr( pszFileName, '.' );
