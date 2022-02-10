@@ -212,10 +212,10 @@ int main( int argc, char *argv[] )
 		Warning( "-key | -k : key, must be 8 chars\n" );
 		Warning( "-extension | -x : file extension for output\n" );
 		Warning( "-quiet | -q : don't print anything (excl. errors)\n" );
-		Warning( "-nofill : don't fill remainder with blank bytes (warning, this will leak unencrypted data)\n" );
+		Warning( "-nofill : don't fill remainder with blank bytes (warning, this will leak unencrypted data)\n\n" );
 		Warning( "e.g.\n" );
 		Warning( "icey -encrypt -key sEvVdNEq -extension .ctx file.txt\n" );
-		Warning( "icey -x .ctx -k sEvVdNEq *.txt\n\n" );
+		Warning( "icey -x .ctx -k sEvVdNEq *.txt\n" );
 		return 0;
 	}
 
