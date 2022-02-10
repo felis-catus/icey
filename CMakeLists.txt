@@ -10,7 +10,7 @@ endif()
 
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
-set(BUILD_TYPES "Debug" "Release" "x64_debug" "x86_debug" "x64_release" "x86_release")
+set(BUILD_TYPES "Debug" "Release" "RelWithDebInfo" "MinSizeRel" "x64_debug" "x86_debug" "x64_release" "x86_release")
 get_property(multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if(multi_config)
   set(CMAKE_CONFIGURATION_TYPES "${BUILD_TYPES}" CACHE STRING "list of supported configuration types" FORCE)
@@ -25,18 +25,6 @@ else()
     )
   endif()
 endif()
-
-set(CMAKE_MSVC_RUNTIME_LIBRARY "")
-set(CMAKE_C_FLAGS "")
-set(CMAKE_CXX_FLAGS "")
-set(CMAKE_C_FLAGS_x64_DEBUG "")
-set(CMAKE_CXX_FLAGS_x64_DEBUG "")
-set(CMAKE_C_FLAGS_x86_DEBUG "")
-set(CMAKE_CXX_FLAGS_x86_DEBUG "")
-set(CMAKE_C_FLAGS_x64_RELEASE "")
-set(CMAKE_CXX_FLAGS_x64_RELEASE "")
-set(CMAKE_C_FLAGS_x86_RELEASE "")
-set(CMAKE_CXX_FLAGS_x86_RELEASE "")
 
 project("icey")
 
