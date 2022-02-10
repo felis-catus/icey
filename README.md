@@ -8,7 +8,7 @@ Originally made as a personal quick and dirty replacement for [Source SDK VICE](
 Usage
 -----
 ```
-usage: icey [-encrypt] [-decrypt] [-quiet] [-key abcdefgh] [-extension .ctx] file file2 ...
+icey [-encrypt] [-decrypt] [-quiet] [-key abcdefgh] [-extension .ctx] file file2 ...
 
 -encrypt | -e : encrypt files (default)
 -decrypt | -d : decrypt files
