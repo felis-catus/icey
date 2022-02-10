@@ -155,7 +155,8 @@ bool ProcessFile( const char *pszFileName )
 
 	if ( bFill )
 	{
-		for ( int i = fileSize - 1; i < bufferSize; i++ )
+		const int endPos = ( fileSize + 1 ) - 1;
+		for ( int i = endPos; i < bufferSize; i++ )
 		{
 			pInBuf[i] = g_chFillChar;
 		}
