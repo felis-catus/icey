@@ -221,25 +221,23 @@ int main( int argc, char *argv[] )
 
 	if ( argc < 2 )
 	{
-		char szHelp[1024];
-#ifndef _WIN32
-		strcat( szHelp, "icey - yet another ICE encryption tool\n\n" );
-#endif
-		strcat( szHelp, "usage: icey [-encrypt] [-decrypt] [-quiet] [-key abcdefgh] [-extension .ctx] file file2 ...\n\n" );
-		strcat( szHelp, "-encrypt | -e : encrypt files (default)\n" );
-		strcat( szHelp, "-decrypt | -d : decrypt files\n" );
-		strcat( szHelp, "-key | -k : key, must be 8 chars\n" );
-		strcat( szHelp, "-extension | -x : file extension for output\n" );
-		strcat( szHelp, "-quiet | -q : don't print anything (excl. errors)\n" );
-		strcat( szHelp, "-nofill : don't fill remainder with blank bytes (warning, this will leak unencrypted data)\n\n" );
-		strcat( szHelp, "e.g.\n" );
-		strcat( szHelp, "icey -encrypt -key lREeeapA -extension .ctx file.txt\n" );
-		strcat( szHelp, "icey -x .ctx -k lREeeapA *.txt\n" );
+		const char *pszHelp =
+			"usage: icey [-encrypt] [-decrypt] [-quiet] [-key abcdefgh] [-extension .ctx] file file2 ...\n\n"
+			"-encrypt | -e : encrypt files (default)\n"
+			"-decrypt | -d : decrypt files\n"
+			"-key | -k : key, must be 8 chars\n"
+			"-extension | -x : file extension for output\n"
+			"-quiet | -q : don't print anything (excl. errors)\n"
+			"-nofill : don't fill remainder with blank bytes (warning, this will leak unencrypted data)\n\n"
+			"e.g.\n"
+			"icey -encrypt -key lREeeapA -extension .ctx file.txt\n"
+			"icey -x .ctx -k lREeeapA *.txt\n";
+
 #ifdef _WIN32
 		FreeConsole();
-		MessageBoxA( NULL, szHelp, "icey - yet another ICE encryption tool", MB_OK );
+		MessageBoxA( NULL, pszHelp, "icey - yet another ICE encryption tool", MB_OK );
 #else
-		Warning( "%s", szHelp );
+		Warning( "%s", pszHelp );
 #endif
 		return EXIT_SUCCESS;
 	}
