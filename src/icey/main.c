@@ -13,6 +13,7 @@
 #ifdef _WIN32
 #include "winlite.h"
 #else
+#include <ctype.h>
 #include <dirent.h>
 #define MAX_PATH 260
 #define _MAX_EXT 256
