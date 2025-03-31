@@ -30,7 +30,7 @@
 #endif // _WIN32
 
 #define KEY_SIZE 8
-#define DEFAULT_KEY	"x9Ke0BY7"
+#define DEFAULT_KEY	"lREeeapA" /* not a secret! */
 #define DEFAULT_EXTENSION ".ctx"
 
 //-----------------------------------------------------------------------------
