@@ -1,68 +1,62 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
 #include <malloc.h>
 
 #include "ice.h"
 
 #ifndef _WIN32
 #define min(X, Y)  ((X) < (Y) ? (X) : (Y))
-#endif // _WIN32
+#endif /* _WIN32 */
 
 #ifdef _WIN32
 #include "winlite.h"
 #else
+#include <alloca.h>
+#include <ctype.h>
 #include <dirent.h>
 #define MAX_PATH 260
 #define _MAX_EXT 256
-#endif // _WIN32
+#endif /* _WIN32 */
 
 #ifdef _WIN32
 #define stricmp _stricmp
-#endif // _WIN32
+#endif /* _WIN32 */
 
 #ifdef _WIN32
 #include <direct.h>
 #define getcwd _getcwd
 #else
 #include <unistd.h>
-#endif // _WIN32
+#endif /* _WIN32 */
 
 #define KEY_SIZE 8
-#define DEFAULT_KEY	"x9Ke0BY7"
+#define DEFAULT_KEY	"lREeeapA" /* not a secret! */
 #define DEFAULT_EXTENSION ".ctx"
 
-//-----------------------------------------------------------------------------
-// Vars
-//-----------------------------------------------------------------------------
+/* ----------------------------------------------------------------------------
+	Vars
+---------------------------------------------------------------------------- */
 
 static char g_szKey[KEY_SIZE + 1];
 static char g_szExtension[_MAX_EXT];
 #ifndef _WIN32
 const char *g_pszInputExtension = NULL;
-#endif // _WIN32
-bool g_bEncrypt;
-bool g_bDecrypt;
-bool g_bQuiet;
-bool g_bNoFill;
-char g_chFillChar = '\n'; // fill remainder with newlines by default
+#endif /* _WIN32 */
+int g_bEncrypt;
+int g_bDecrypt;
+int g_bQuiet;
+int g_bNoFill;
+char g_chFillChar = '\n'; /* fill remainder with newlines by default */
 
-//-----------------------------------------------------------------------------
-// Utils
-//-----------------------------------------------------------------------------
-
-#define Msg( format, ... ) if ( !g_bQuiet ) fprintf( stdout, format, ##__VA_ARGS__ )
-#define Warning( format, ... ) fprintf( stderr, format, ##__VA_ARGS__ )
-
-//-----------------------------------------------------------------------------
-inline bool UTIL_IsPathSeparator( const char c )
+/* ------------------------------------------------------------------------- */
+static int UTIL_IsPathSeparator( const char c )
 {
 	return c == '\\' || c == '/';
 }
 
-//-----------------------------------------------------------------------------
-void UTIL_StripExtension( const char *pszIn, char *pszOut, const size_t outSize )
+/* ------------------------------------------------------------------------- */
+static void UTIL_StripExtension( const char *pszIn, char *pszOut, const size_t outSize )
 {
 	size_t end = strlen( pszIn ) - 1;
 	while ( end > 0 && pszIn[end] != '.' && !UTIL_IsPathSeparator( pszIn[end] ) )
@@ -89,76 +83,94 @@ void UTIL_StripExtension( const char *pszIn, char *pszOut, const size_t outSize 
 	}
 }
 
-//-----------------------------------------------------------------------------
-long UTIL_GetFileSize( FILE *pFile )
+/* ------------------------------------------------------------------------- */
+static long UTIL_GetFileSize( FILE *pFile )
 {
+	long fileSize;
 	fseek( pFile, 0, SEEK_END );
-	const long fileSize = ftell( pFile );
+	fileSize = ftell( pFile );
 	fseek( pFile, 0, SEEK_SET );
 	return fileSize;
 }
 
 #ifndef _WIN32
-//-----------------------------------------------------------------------------
+/* ------------------------------------------------------------------------- */
 int stricmp( char const *a, char const *b )
 {
 	for ( ;; a++, b++ )
 	{
 		int d = tolower( (unsigned char)*a ) - tolower( (unsigned char)*b );
 		if ( d != 0 || !*a )
+		{
 			return d;
+		}
 	}
 }
 
-//-----------------------------------------------------------------------------
+/* ------------------------------------------------------------------------- */
 int extension_filter( const struct dirent *dir )
 {
 	if ( !dir )
 		return 0;
 
-	if ( dir->d_type == DT_REG ) // Only deal with regular files
+	if ( dir->d_type == DT_REG ) /* Only deal with regular files */
 	{
 		const char *ext = strrchr( dir->d_name, '.' );
-		if ( ( !ext ) || ( ext == dir->d_name ) )
-			return 0;
-		else
+		if ( !ext || ext == dir->d_name )
 		{
-			if ( stricmp( ext, g_pszInputExtension ) == 0 )
-				return 1;
+			return 0;
+		}
+		else if ( stricmp( ext, g_pszInputExtension ) == 0 )
+		{
+			return 1;
 		}
 	}
 
 	return 0;
 }
-#endif // _WIN32
+#endif /* _WIN32 */
 
-//-----------------------------------------------------------------------------
-bool ProcessFile( const char *pszFileName )
+/* ------------------------------------------------------------------------- */
+static int ProcessFile( const char *pszFileName )
 {
-	FILE *pFile = fopen( pszFileName, "rb" );
+	ICE_KEY *pKey;
+	FILE *pFile;
+	long fileSize;
+	int blockSize;
+	int remainder;
+	int bFill;
+	long bufferSize;
+	unsigned char *pInBuf;
+	unsigned char *pOutBuf;
+	int bytesLeft;
+	const unsigned char *pIn;
+	unsigned char *pOut;
+	char szOutName[MAX_PATH];
+
+	pFile = fopen( pszFileName, "rb" );
 	if ( pFile == NULL )
 	{
-		Warning( "couldn't open %s for input\n", pszFileName );
-		return false;
+		fprintf( stderr, "couldn't open %s for input\n", pszFileName );
+		return 0;
 	}
 
-	ICE_KEY *pKey = ice_key_create( 0 );
+	pKey = ice_key_create( 0 );
 	ice_key_set( pKey, (unsigned char *)g_szKey );
 
-	const long fileSize = UTIL_GetFileSize( pFile );
-	const int blockSize = ice_key_block_size( pKey );
-	const int remainder = fileSize % blockSize;
+	fileSize = UTIL_GetFileSize( pFile );
+	blockSize = ice_key_block_size( pKey );
+	remainder = fileSize % blockSize;
 
 	if ( g_bNoFill && remainder != 0 )
 	{
-		Warning( "warning: %d bytes of unencrypted data leaked due to -nofill.\n", remainder );
+		fprintf( stderr, "warning: %d bytes of unencrypted data leaked due to -nofill.\n", remainder );
 	}
 
-	const bool bFill = ( !g_bNoFill && remainder != 0 ) ? true : false;
-	const long bufferSize = fileSize + ( bFill ? ( blockSize - remainder ) : 0 );
+	bFill = ( !g_bNoFill && remainder != 0 ) ? 1 : 0;
+	bufferSize = fileSize + ( bFill ? ( blockSize - remainder ) : 0 );
 
-	unsigned char *pInBuf = alloca( bufferSize );
-	unsigned char *pOutBuf = alloca( bufferSize );
+	pInBuf = alloca( bufferSize );
+	pOutBuf = alloca( bufferSize );
 
 	memset( pInBuf, 0, bufferSize );
 	memset( pOutBuf, 0, bufferSize );
@@ -169,23 +181,28 @@ bool ProcessFile( const char *pszFileName )
 	if ( bFill )
 	{
 		const int endPos = ( fileSize + 1 ) - 1;
-		for ( int i = endPos; i < bufferSize; ++i )
+		int i = endPos;
+		for ( ; i < bufferSize; ++i )
 		{
 			pInBuf[i] = g_chFillChar;
 		}
 	}
 
-	int bytesLeft = bufferSize;
+	bytesLeft = bufferSize;
 
-	const unsigned char *pIn = pInBuf;
-	unsigned char *pOut = pOutBuf;
+	pIn = pInBuf;
+	pOut = pOutBuf;
 
 	while ( bytesLeft >= blockSize )
 	{
 		if ( g_bEncrypt )
+		{
 			ice_key_encrypt( pKey, pIn, pOut );
+		}
 		else if ( g_bDecrypt )
+		{
 			ice_key_decrypt( pKey, pIn, pOut );
+		}
 
 		bytesLeft -= blockSize;
 		pIn += blockSize;
@@ -194,74 +211,89 @@ bool ProcessFile( const char *pszFileName )
 
 	memcpy( pOut, pIn, bytesLeft );
 
-	char szOutName[MAX_PATH];
 	UTIL_StripExtension( pszFileName, szOutName, MAX_PATH );
 	strncat( szOutName, g_szExtension, MAX_PATH - strlen( szOutName ) );
 
 	pFile = fopen( szOutName, "wb" );
 	if ( pFile == NULL )
 	{
-		Warning( "couldn't open %s for output\n", szOutName );
-		return false;
+		fprintf( stderr, "couldn't open %s for output\n", szOutName );
+		return 0;
 	}
 
 	fwrite( pOutBuf, bufferSize, 1, pFile );
 	fclose( pFile );
 
-	Msg( "handled file %s\n", pszFileName );
+	if ( !g_bQuiet ) 
+		fprintf( stdout, "handled file %s\n", pszFileName );
 
 	ice_key_destroy( pKey );
-	return true;
+	return 1;
 }
 
-//-----------------------------------------------------------------------------
-int main( int argc, char *argv[] )
+/* ------------------------------------------------------------------------- */
+int main( const int argc, char *argv[] )
 {
-	g_bQuiet = false;
+	int i;
+	const char *pszExtension = DEFAULT_EXTENSION;
+	char szExtension[_MAX_EXT];
+	char szSearch[1024];
+
+#ifdef _WIN32
+	WIN32_FIND_DATAA file;
+	HANDLE hFind;
+	int bFound;
+#else
+	struct dirent **nameList;
+	int dirIdx;
+#endif /* _WIN32 */
+
+	szExtension[0] = '\0';
+
+	g_bQuiet = 0;
 
 	if ( argc < 2 )
 	{
-		char szHelp[1024];
-#ifndef _WIN32
-		strcat( szHelp, "icey - yet another ICE encryption tool\n\n" );
-#endif
-		strcat( szHelp, "usage: icey [-encrypt] [-decrypt] [-quiet] [-key abcdefgh] [-extension .ctx] file file2 ...\n\n" );
-		strcat( szHelp, "-encrypt | -e : encrypt files (default)\n" );
-		strcat( szHelp, "-decrypt | -d : decrypt files\n" );
-		strcat( szHelp, "-key | -k : key, must be 8 chars\n" );
-		strcat( szHelp, "-extension | -x : file extension for output\n" );
-		strcat( szHelp, "-quiet | -q : don't print anything (excl. errors)\n" );
-		strcat( szHelp, "-nofill : don't fill remainder with blank bytes (warning, this will leak unencrypted data)\n\n" );
-		strcat( szHelp, "e.g.\n" );
-		strcat( szHelp, "icey -encrypt -key lREeeapA -extension .ctx file.txt\n" );
-		strcat( szHelp, "icey -x .ctx -k lREeeapA *.txt\n" );
+		const char *pszHelp =
+			"usage: icey [-encrypt] [-decrypt] [-quiet] [-key abcdefgh] [-extension .ctx] file file2 ...\n\n"
+			"-encrypt | -e : encrypt files (default)\n"
+			"-decrypt | -d : decrypt files\n"
+			"-key | -k : key, must be 8 chars\n"
+			"-extension | -x : file extension for output\n"
+			"-quiet | -q : don't print anything (excl. errors)\n"
+			"-nofill : don't fill remainder with blank bytes (warning, this will leak unencrypted data)\n\n"
+			"e.g.\n"
+			"icey -encrypt -key lREeeapA -extension .ctx file.txt\n"
+			"icey -x .ctx -k lREeeapA *.txt\n";
+
 #ifdef _WIN32
 		FreeConsole();
-		MessageBoxA( NULL, szHelp, "icey - yet another ICE encryption tool", MB_OK );
+		MessageBoxA( NULL, pszHelp, "icey - yet another ICE encryption tool", MB_OK );
 #else
-		Warning( "%s", szHelp );
-#endif
+		fprintf( stderr, "%s", pszHelp );
+#endif /* _WIN32 */
+
 		return EXIT_SUCCESS;
 	}
 
 	g_szKey[0] = '\0';
 	g_szExtension[0] = '\0';
 
-	g_bEncrypt = true; // assume encrypt by default
+	g_bEncrypt = 1; /* assume encrypt by default */
 
-	int i = 1;
+	i = 1;
 	while ( i < argc )
 	{
 		if ( stricmp( argv[i], "-e" ) == 0 || stricmp( argv[i], "-encrypt" ) == 0 )
 		{
-			g_bEncrypt = true;
-			g_bDecrypt = false;
+			g_bEncrypt = 1;
+			g_bDecrypt = 0;
 			++i;
 		}
 		else if ( stricmp( argv[i], "-d" ) == 0 || stricmp( argv[i], "-decrypt" ) == 0 )
 		{
-			g_bDecrypt = true;
-			g_bEncrypt = false;
+			g_bDecrypt = 1;
+			g_bEncrypt = 0;
 			++i;
 		}
 		else if ( stricmp( argv[i], "-k" ) == 0 || stricmp( argv[i], "-key" ) == 0 )
@@ -269,7 +301,7 @@ int main( int argc, char *argv[] )
 			++i;
 			if ( strlen( argv[i] ) != KEY_SIZE )
 			{
-				Warning( "error: ICE key must be 8 char text!\n" );
+				fprintf( stderr, "error: ICE key must be 8 char text!\n" );
 				return EXIT_FAILURE;
 			}
 
@@ -279,9 +311,9 @@ int main( int argc, char *argv[] )
 		else if ( stricmp( argv[i], "-x" ) == 0 || stricmp( argv[i], "-extension" ) == 0 )
 		{
 			++i;
-			if ( strlen( argv[i] ) < 1 )
+			if ( strlen( argv[i] ) < 1 || *argv[i] != '.' )
 			{
-				Warning( "error: bad extension.\n" );
+				fprintf( stderr, "error: bad extension.\n" );
 				return EXIT_FAILURE;
 			}
 
@@ -290,13 +322,13 @@ int main( int argc, char *argv[] )
 		}
 		else if ( stricmp( argv[i], "-q" ) == 0 || stricmp( argv[i], "-quiet" ) == 0 )
 		{
-			g_bQuiet = true;
+			g_bQuiet = 1;
 			++i;
 		}
 		else if ( stricmp( argv[i], "-nofill" ) == 0 )
 		{
-			Warning( "-nofill\n" );
-			g_bNoFill = true;
+			fprintf( stderr, "-nofill\n" );
+			g_bNoFill = 1;
 			++i;
 		}
 		else
@@ -307,19 +339,23 @@ int main( int argc, char *argv[] )
 
 	if ( i >= argc )
 	{
-		Warning( "error: no files in cmd line.\n" );
+		fprintf( stderr, "error: no files in cmd line.\n" );
 		return EXIT_FAILURE;
 	}
 
 	if ( g_szKey[0] == '\0' )
 	{
-		Msg( "no key, using default (%s)\n", DEFAULT_KEY );
+		if ( !g_bQuiet ) 
+			fprintf( stdout, "no key, using default (%s)\n", DEFAULT_KEY );
+
 		strncpy( g_szKey, DEFAULT_KEY, sizeof( g_szKey ) );
 	}
 
 	if ( g_szExtension[0] == '\0' )
 	{
-		Msg( "no extension, using default (%s)\n", DEFAULT_EXTENSION );
+		if ( !g_bQuiet ) 
+			fprintf( stdout, "no extension, using default (%s)\n", DEFAULT_EXTENSION );
+
 		strncpy( g_szExtension, DEFAULT_EXTENSION, sizeof( g_szExtension ) );
 	}
 
@@ -329,32 +365,29 @@ int main( int argc, char *argv[] )
 
 		if ( strstr( pszFileName, "*." ) )
 		{
-			char cwd[MAX_PATH];
-			if ( getcwd( cwd, sizeof( cwd ) ) == NULL )
+			char szWorkingDir[MAX_PATH];
+			if ( getcwd( szWorkingDir, sizeof( szWorkingDir ) ) == NULL )
 			{
-				Warning( "error: couldn't get current directory.\n" );
+				fprintf( stderr, "error: couldn't get current directory.\n" );
 				return EXIT_FAILURE;
 			}
 
-			char szFileName[MAX_PATH];
-			char szExtension[_MAX_EXT];
-#ifdef _WIN32
-			_splitpath( pszFileName, NULL, NULL, szFileName, szExtension );
-#endif
-			const char *pszExtension = DEFAULT_EXTENSION;
 			if ( szExtension[0] != '\0' )
+			{
 				pszExtension = szExtension;
+			}
 
-			char szSearch[MAX_PATH];
-			snprintf( szSearch, sizeof( szSearch ), "%s\\*%s", cwd, pszExtension );
+			szSearch[0] = '\0';
+			strncat( szSearch, szWorkingDir, MAX_PATH - 1 );
+			strncat( szSearch, "\\*", 3 );
+			strncat( szSearch, pszExtension, MAX_PATH - 1 );
 
 #ifdef _WIN32
-			WIN32_FIND_DATAA file;
-			const HANDLE hFind = FindFirstFileA( szSearch, &file );
+			hFind = FindFirstFileA( szSearch, &file );
 
 			if ( hFind == INVALID_HANDLE_VALUE )
 			{
-				// print windows error
+				/* print windows error */
 				LPVOID lpMsgBuf;
 				const DWORD dwError = GetLastError();
 
@@ -368,34 +401,33 @@ int main( int argc, char *argv[] )
 					(LPSTR)&lpMsgBuf,
 					0, NULL );
 
-				Warning( "%s", (LPSTR)lpMsgBuf );
+				fprintf( stderr, "%s", (LPSTR)lpMsgBuf );
 				LocalFree( lpMsgBuf );
 
-				Warning( "error: windows threw %lu, bailing.\n", dwError );
+				fprintf( stderr, "error: windows threw %lu, bailing.\n", dwError );
 				return EXIT_FAILURE;
 			}
 #else
 			g_pszInputExtension = strrchr( pszFileName, '.' );
-			struct dirent **nameList;
-			int n = scandir( ".", &nameList, extension_filter, alphasort );
-			if ( n < 0 )
+			dirIdx = scandir( ".", &nameList, extension_filter, alphasort );
+			if ( dirIdx < 0 )
 			{
-				Warning( "error: scandir failed, bailing\n" );
+				fprintf( stderr, "error: scandir failed, bailing\n" );
 				return EXIT_FAILURE;
 			}
 			else
 			{
-				while ( n-- )
+				while ( dirIdx-- )
 				{
-					ProcessFile( nameList[n]->d_name );
+					ProcessFile( nameList[dirIdx]->d_name );
 				}
 
 				free( nameList );
 			}
-#endif
+#endif /* _WIN32 */
 
 #ifdef _WIN32
-			bool bFound = true;
+			bFound = 1;
 			while ( bFound )
 			{
 				ProcessFile( file.cFileName );
@@ -403,7 +435,7 @@ int main( int argc, char *argv[] )
 			}
 
 			FindClose( hFind );
-#endif
+#endif /* _WIN32 */
 		}
 		else
 		{
