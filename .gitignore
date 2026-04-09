@@ -187,3 +187,5 @@ _deps
 *.recipe
 out/
 bin/
+build/
+.cache
