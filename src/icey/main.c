@@ -57,7 +57,7 @@ char g_chFillChar = '\n'; // fill remainder with newlines by default
 #define Warning( format, ... ) fprintf( stderr, format, ##__VA_ARGS__ )
 
 //-----------------------------------------------------------------------------
-inline bool UTIL_IsPathSeparator( const char c )
+bool UTIL_IsPathSeparator( const char c )
 {
 	return c == '\\' || c == '/';
 }
