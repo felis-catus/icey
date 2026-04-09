@@ -236,7 +236,7 @@ int main( int argc, char *argv[] )
 
 #ifdef _WIN32
 		FreeConsole();
-		MessageBoxA( NULL, pszHelp, "icey - yet another ICE encryption tool", MB_OK );
+		MessageBoxA( NULL, pszHelp, "icey - yet another cipher tool", MB_OK );
 #else
 		Warning( "%s", pszHelp );
 #endif
